@@ -154,7 +154,8 @@ MP4TrackId MP4AddULawAudioTrack(
 MP4V2_EXPORT
 MP4TrackId MP4AddALawAudioTrack(
     MP4FileHandle hFile,
-    uint32_t timeScale);
+    uint32_t timeScale,
+    MP4Duration sampleDuration);
 
 MP4V2_EXPORT
 MP4TrackId MP4AddAC3AudioTrack(
