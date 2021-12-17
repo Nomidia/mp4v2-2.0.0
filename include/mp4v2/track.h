@@ -138,7 +138,8 @@ MP4TrackId MP4AddAudioTrack(
 MP4V2_EXPORT
 MP4TrackId MP4AddULawAudioTrack(
     MP4FileHandle hFile,
-    uint32_t timeScale);
+    uint32_t timeScale,
+    MP4Duration sampleDuration);
 
 /** Add alaw track to mp4 file.
  *

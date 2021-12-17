@@ -1303,9 +1303,9 @@ MP4TrackId MP4File::AddAmrAudioTrack(
     return trackId;
 }
 
-MP4TrackId MP4File::AddULawAudioTrack(    uint32_t timeScale)
+MP4TrackId MP4File::AddULawAudioTrack(    uint32_t timeScale, MP4Duration sampleDuration)
 {
-    uint32_t fixedSampleDuration = (timeScale * 20)/1000; // 20mSec/Sample
+    //uint32_t fixedSampleDuration = (timeScale * 20)/1000; // 20mSec/Sample
 
     MP4TrackId trackId = AddTrack(MP4_AUDIO_TRACK_TYPE, timeScale);
 
@@ -1329,7 +1329,7 @@ MP4TrackId MP4File::AddULawAudioTrack(    uint32_t timeScale)
                             "mdia.minf.stbl.stsd.ulaw.timeScale",
                             timeScale<<16);
 
-    m_pTracks[FindTrackIndex(trackId)]->SetFixedSampleDuration(fixedSampleDuration);
+    m_pTracks[FindTrackIndex(trackId)]->SetFixedSampleDuration(sampleDuration);
 
     return trackId;
 }

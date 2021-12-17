@@ -793,12 +793,13 @@ MP4FileHandle MP4ReadProvider( const char* fileName, const MP4FileProvider* file
 
     MP4TrackId MP4AddULawAudioTrack(
         MP4FileHandle hFile,
-        uint32_t timeScale)
+        uint32_t timeScale,
+        MP4Duration sampleDuration)
     {
         if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
             try {
                 return ((MP4File*)hFile)->
-                       AddULawAudioTrack(timeScale);
+                       AddULawAudioTrack(timeScale, sampleDuration);
             }
             catch( Exception* x ) {
                 mp4v2::impl::log.errorf(*x);

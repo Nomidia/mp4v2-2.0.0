@@ -248,7 +248,8 @@ public:
         uint8_t audioType);
 
     MP4TrackId AddULawAudioTrack(
-        uint32_t timeScale);
+        uint32_t timeScale,
+        MP4Duration sampleDuration);
 
     MP4TrackId AddALawAudioTrack(
         uint32_t timeScale,
