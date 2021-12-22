@@ -1165,6 +1165,157 @@ MP4FileHandle MP4ReadProvider( const char* fileName, const MP4FileProvider* file
         return MP4_INVALID_TRACK_ID;
     }
 
+    void MP4SetH265VideoConfig(MP4FileHandle hFile,
+                                        MP4TrackId trackId,
+                                        uint8_t generalProfileSpace,
+                                        uint8_t generalTierFlag,
+                                        uint8_t generalProfile,
+                                        uint32_t generalProfileCompatibilityFlags,
+                                        uint64_t generalConstraintIndicatorFlags,
+                                        uint8_t generalLevel,
+                                        uint32_t minSpatialSegmentation,
+                                        uint8_t parallelismType,
+                                        uint8_t chromaFormat,
+                                        uint8_t lumaBitDepth,
+                                        uint8_t chromaBitDepth,
+                                        uint16_t averageFrameRate,
+                                        uint8_t constantFrameRate,
+                                        uint8_t numTemporalLayers,
+                                        uint8_t temporalIdNested)
+    {
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                MP4File *pFile = (MP4File *)hFile;
+                pFile->SetH265VideoConfig(trackId,
+                                                 generalProfileSpace,
+                                                 generalTierFlag,
+                                                 generalProfile,
+                                                 generalProfileCompatibilityFlags,
+                                                 generalConstraintIndicatorFlags,
+                                                 generalLevel,
+                                                 minSpatialSegmentation,
+                                                 parallelismType,
+                                                 chromaFormat,
+                                                 lumaBitDepth,
+                                                 chromaBitDepth,
+                                                 averageFrameRate,
+                                                 constantFrameRate,
+                                                 numTemporalLayers,
+                                                 temporalIdNested);
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return ;
+    }
+
+    MP4TrackId MP4AddH265VideoTrack(MP4FileHandle hFile,
+                                        uint32_t timeScale,
+                                        MP4Duration sampleDuration,
+                                        uint16_t width,
+                                        uint16_t height,
+                                        uint8_t lengthSizeMinusOne)
+    {
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                MP4File *pFile = (MP4File *)hFile;
+
+                return pFile->AddH265VideoTrack(timeScale,
+                                                sampleDuration,
+                                                width,
+                                                height,
+                                                lengthSizeMinusOne);
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return MP4_INVALID_TRACK_ID;
+    }
+
+    void MP4AddH265VideoParameterSet (MP4FileHandle hFile,
+                                         MP4TrackId trackId,
+                                         const uint8_t *pVideo,
+                                         uint16_t videoLen)
+    {
+
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                MP4File *pFile = (MP4File *)hFile;
+
+                pFile->AddH265VideoParameterSet(trackId,
+                                                pVideo,
+                                                videoLen);
+                return;
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return;
+    }
+
+    void MP4AddH265SequenceParameterSet (MP4FileHandle hFile,
+                                         MP4TrackId trackId,
+                                         const uint8_t *pSequence,
+                                         uint16_t sequenceLen)
+    {
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                MP4File *pFile = (MP4File *)hFile;
+
+                pFile->AddH265SequenceParameterSet(trackId,
+                                                   pSequence,
+                                                   sequenceLen);
+                return;
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return;
+    }
+    void MP4AddH265PictureParameterSet (MP4FileHandle hFile,
+                                        MP4TrackId trackId,
+                                        const uint8_t *pPict,
+                                        uint16_t pictLen)
+    {
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                MP4File *pFile = (MP4File *)hFile;
+
+                pFile->AddH265PictureParameterSet(trackId,
+                                                  pPict,
+                                                  pictLen);
+                return;
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return;
+    }
 
     MP4TrackId MP4AddH264VideoTrack(MP4FileHandle hFile,
                                     uint32_t timeScale,
@@ -2581,6 +2732,59 @@ MP4FileHandle MP4ReadProvider( const char* fileName, const MP4FileProvider* file
         }
         return false;
     }
+
+    bool MP4GetTrackH265SeqPictHeaders (MP4FileHandle hFile,
+                                        MP4TrackId trackId,
+                                        uint8_t ***pVidHeader,
+                                        uint32_t **pVidHeaderSize,
+                                        uint8_t ***pSeqHeader,
+                                        uint32_t **pSeqHeaderSize,
+                                        uint8_t ***pPictHeader,
+                                        uint32_t **pPictHeaderSize)
+    {
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                ((MP4File*)hFile)->GetTrackH265SeqPictHeaders(trackId,
+                        pVidHeader,
+                        pVidHeaderSize,
+                        pSeqHeader,
+                        pSeqHeaderSize,
+                        pPictHeader,
+                        pPictHeaderSize);
+                return true;
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return false;
+    }
+    bool MP4GetTrackH265LengthSize (MP4FileHandle hFile,
+                                    MP4TrackId trackId,
+                                    uint32_t *pLength)
+    {
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+            try {
+                *pLength = 1 +
+                           ((MP4File*) hFile)->GetTrackIntegerProperty(trackId,
+                                   "mdia.minf.stbl.stsd.*[0].hvcC.lengthSizeMinusOne");
+                return true;
+            }
+            catch( Exception* x ) {
+                mp4v2::impl::log.errorf(*x);
+                delete x;
+            }
+            catch( ... ) {
+                mp4v2::impl::log.errorf( "%s: failed", __FUNCTION__ );
+            }
+        }
+        return false;
+    }
+
 
     MP4SampleId MP4GetTrackNumberOfSamples(
         MP4FileHandle hFile, MP4TrackId trackId)

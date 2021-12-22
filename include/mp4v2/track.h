@@ -248,6 +248,57 @@ MP4TrackId MP4AddVideoTrack(
     uint16_t      height,
     uint8_t       videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE) );
 
+
+MP4V2_EXPORT
+void MP4SetH265VideoConfig(
+    MP4FileHandle hFile,
+    MP4TrackId trackId,
+    uint8_t generalProfileSpace,
+    uint8_t generalTierFlag,
+    uint8_t generalProfile,
+    uint32_t generalProfileCompatibilityFlags,
+    uint64_t generalConstraintIndicatorFlags,
+    uint8_t generalLevel,
+    uint32_t minSpatialSegmentation,
+    uint8_t parallelismType,
+    uint8_t chromaFormat,
+    uint8_t lumaBitDepth,
+    uint8_t chromaBitDepth,
+    uint16_t averageFrameRate,
+    uint8_t constantFrameRate,
+    uint8_t numTemporalLayers,
+    uint8_t temporalIdNested);
+
+MP4V2_EXPORT
+MP4TrackId MP4AddH265VideoTrack(
+    MP4FileHandle hFile,
+    uint32_t timeScale,
+    MP4Duration sampleDuration,
+    uint16_t width,
+    uint16_t height,
+    uint8_t lengthSizeMinusOne );
+
+MP4V2_EXPORT
+void MP4AddH265VideoParameterSet (
+    MP4FileHandle  hFile,
+    MP4TrackId     trackId,
+    const uint8_t* pVideo,
+    uint16_t       videoLen );
+
+MP4V2_EXPORT
+void MP4AddH265SequenceParameterSet(
+    MP4FileHandle  hFile,
+    MP4TrackId     trackId,
+    const uint8_t* pSequence,
+    uint16_t       sequenceLen );
+
+MP4V2_EXPORT
+void MP4AddH265PictureParameterSet(
+    MP4FileHandle  hFile,
+    MP4TrackId     trackId,
+    const uint8_t* pPict,
+    uint16_t       pictLen );
+
 MP4V2_EXPORT
 MP4TrackId MP4AddH264VideoTrack(
     MP4FileHandle hFile,

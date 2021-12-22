@@ -87,6 +87,68 @@ void MP4Avc1Atom::Generate()
     m_pProperties[7]->SetReadOnly(true);
 }
 
+
+MP4Hev1Atom::MP4Hev1Atom(MP4File &file)
+        : MP4Atom(file, "hev1")
+{
+    AddReserved(*this, "reserved1", 6); /* 0 */
+
+    AddProperty( /* 1 */
+        new MP4Integer16Property(*this, "dataReferenceIndex"));
+
+    AddReserved(*this, "reserved2", 16); /* 2 */
+
+    AddProperty( /* 3 */
+        new MP4Integer16Property(*this, "width"));
+    AddProperty( /* 4 */
+        new MP4Integer16Property(*this, "height"));
+
+    AddReserved(*this, "reserved3", 14); /* 5 */
+
+    MP4StringProperty* pProp =
+        new MP4StringProperty(*this, "compressorName");
+    pProp->SetFixedLength(32);
+    pProp->SetCountedFormat(true);
+    pProp->SetValue("HEVC Coding");
+    AddProperty(pProp); /* 6 */
+
+    AddReserved(*this, "reserved4", 4); /* 7 */
+
+    ExpectChildAtom("hvcC", Required, OnlyOne);
+    ExpectChildAtom("btrt", Optional, OnlyOne);
+    ExpectChildAtom("colr", Optional, OnlyOne);
+    ExpectChildAtom("pasp", Optional, OnlyOne);
+    // for now ExpectChildAtom("m4ds", Optional, OnlyOne);
+}
+
+void MP4Hev1Atom::Generate()
+{
+    MP4Atom::Generate();
+
+    ((MP4Integer16Property*)m_pProperties[1])->SetValue(1);
+
+    // property reserved3 has non-zero fixed values
+    static uint8_t reserved3[14] = {
+        0x00, 0x48, 0x00, 0x00,
+        0x00, 0x48, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01,
+    };
+    m_pProperties[5]->SetReadOnly(false);
+    ((MP4BytesProperty*)m_pProperties[5])->
+    SetValue(reserved3, sizeof(reserved3));
+    m_pProperties[5]->SetReadOnly(true);
+
+    // property reserved4 has non-zero fixed values
+    static uint8_t reserved4[4] = {
+        0x00, 0x18, 0xFF, 0xFF,
+    };
+    m_pProperties[7]->SetReadOnly(false);
+    ((MP4BytesProperty*)m_pProperties[7])->
+    SetValue(reserved4, sizeof(reserved4));
+    m_pProperties[7]->SetReadOnly(true);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 }

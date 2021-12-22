@@ -1800,6 +1800,291 @@ MP4TrackId MP4File::AddEncVideoTrack(uint32_t timeScale,
     return trackId;
 }
 
+void MP4File::SetH265VideoConfig(
+    MP4TrackId trackId,
+    uint8_t generalProfileSpace,
+    uint8_t generalTierFlag,
+    uint8_t generalProfile,
+    uint32_t generalProfileCompatibilityFlags,
+    uint64_t generalConstraintIndicatorFlags,
+    uint8_t generalLevel,
+    uint32_t minSpatialSegmentation,
+    uint8_t parallelismType,
+    uint8_t chromaFormat,
+    uint8_t lumaBitDepth,
+    uint8_t chromaBitDepth,
+    uint16_t averageFrameRate,
+    uint8_t constantFrameRate,
+    uint8_t numTemporalLayers,
+    uint8_t temporalIdNested)
+{
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalProfileSpace",
+                            generalProfileSpace);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalTierFlag",
+                            generalTierFlag);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalProfile",
+                            generalProfile);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalProfileCompatibilityFlags",
+                            generalProfileCompatibilityFlags);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalConstraintIndicatorFlagsHigh",
+                            (uint32_t)(generalConstraintIndicatorFlags >> 32));
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalConstraintIndicatorFlags",
+                            (uint32_t)(generalConstraintIndicatorFlags));
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.generalLevel",
+                            generalLevel);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.minSpatialSegmentation",
+                            minSpatialSegmentation);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.parallelismType",
+                            parallelismType);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.chromaFormat",
+                            chromaFormat);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.lumaBitDepth",
+                            lumaBitDepth);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.chromaBitDepth",
+                            chromaBitDepth);
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.averageFrameRate",
+                            averageFrameRate);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.constantFrameRate",
+                            constantFrameRate);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.numTemporalLayers",
+                            numTemporalLayers);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.temporalIdNested",
+                            temporalIdNested);
+}
+
+MP4TrackId MP4File::AddH265VideoTrack(
+    uint32_t timeScale,
+    MP4Duration sampleDuration,
+    uint16_t width,
+    uint16_t height,
+    uint8_t lengthSizeMinusOne)
+{
+    MP4TrackId trackId = AddVideoTrackDefault(timeScale,
+                         sampleDuration,
+                         width,
+                         height,
+                         "hev1");
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.width", width);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.height", height);
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.lengthSizeMinusOne",
+                            lengthSizeMinusOne);
+
+    return trackId;
+}
+
+ void MP4File::AddH265VideoParameterSet (MP4TrackId trackId,
+        const uint8_t *pVideo,
+        uint16_t videoLen)
+{
+    const char *format;
+    MP4Atom *hvcCAtom;
+
+    // get 4cc media format - can be hev1 or encv for ismacrypted track
+    format = GetTrackMediaDataName(trackId);
+
+    if (!strcasecmp(format, "hev1"))
+        hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.hev1.hvcC"));
+    else if (!strcasecmp(format, "encv"))
+        hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.hvcC"));
+    else
+        // huh?  unknown track format
+        return;
+
+    MP4Integer16Property *pCount;
+    MP4Integer16Property *pLength;
+    MP4BytesProperty *pUnit;
+    if ((hvcCAtom->FindProperty("hvcC.numOfVideoParameterSets",
+                                (MP4Property **)&pCount) == false) ||
+            (hvcCAtom->FindProperty("hvcC.videoEntries.videoParameterSetLength",
+                                    (MP4Property **)&pLength) == false) ||
+            (hvcCAtom->FindProperty("hvcC.videoEntries.videoParameterSetNALUnit",
+                                    (MP4Property **)&pUnit) == false)) {
+        log.errorf("%s: \"%s\": Could not find hvcC properties",
+                   __FUNCTION__, GetFilename().c_str() );
+        return;
+    }
+    uint32_t count = pCount->GetValue();
+
+    if (count > 0) {
+        // see if we already exist
+        for (uint32_t index = 0; index < count; index++) {
+            if (pLength->GetValue(index) == videoLen) {
+                uint8_t *seq;
+                uint32_t seqlen;
+                pUnit->GetValue(&seq, &seqlen, index);
+                if (memcmp(seq, pVideo, videoLen) == 0) {
+                    free(seq);
+                    return;
+                }
+                free(seq);
+            }
+        }
+    } else {
+        MP4Integer16Property *pSeqCount;
+        if (hvcCAtom->FindProperty("hvcC.numOfSequences", (MP4Property **)&pSeqCount)) {
+            pSeqCount->IncrementValue();
+        }
+    }
+    pLength->AddValue(videoLen);
+    pUnit->AddValue(pVideo, videoLen);
+    pCount->IncrementValue();
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.typeOfVideoParameterSets",
+                            0x20);
+
+    return;
+}
+
+void MP4File::AddH265SequenceParameterSet (MP4TrackId trackId,
+        const uint8_t *pSequence,
+        uint16_t sequenceLen)
+{
+    const char *format;
+    MP4Atom *hvcCAtom;
+
+    // get 4cc media format - can be hev1 or encv for ismacrypted track
+    format = GetTrackMediaDataName(trackId);
+
+    if (!strcasecmp(format, "hev1"))
+        hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.hev1.hvcC"));
+    else if (!strcasecmp(format, "encv"))
+        hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.hvcC"));
+    else
+        // huh?  unknown track format
+        return;
+
+    MP4Integer16Property *pCount;
+    MP4Integer16Property *pLength;
+    MP4BytesProperty *pUnit;
+    if ((hvcCAtom->FindProperty("hvcC.numOfSequenceParameterSets",
+                                (MP4Property **)&pCount) == false) ||
+            (hvcCAtom->FindProperty("hvcC.sequenceEntries.sequenceParameterSetLength",
+                                    (MP4Property **)&pLength) == false) ||
+            (hvcCAtom->FindProperty("hvcC.sequenceEntries.sequenceParameterSetNALUnit",
+                                    (MP4Property **)&pUnit) == false)) {
+        log.errorf("%s: \"%s\": Could not find hvcC properties",
+                   __FUNCTION__, GetFilename().c_str() );
+        return;
+    }
+    uint32_t count = pCount->GetValue();
+
+    if (count > 0) {
+        // see if we already exist
+        for (uint32_t index = 0; index < count; index++) {
+            if (pLength->GetValue(index) == sequenceLen) {
+                uint8_t *seq;
+                uint32_t seqlen;
+                pUnit->GetValue(&seq, &seqlen, index);
+                if (memcmp(seq, pSequence, sequenceLen) == 0) {
+                    free(seq);
+                    return;
+                }
+                free(seq);
+            }
+        }
+    } else {
+        MP4Integer16Property *pSeqCount;
+        if (hvcCAtom->FindProperty("hvcC.numOfSequences", (MP4Property **)&pSeqCount)) {
+            pSeqCount->IncrementValue();
+        }
+    }
+    pLength->AddValue(sequenceLen);
+    pUnit->AddValue(pSequence, sequenceLen);
+    pCount->IncrementValue();
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.typeOfSequenceParameterSets",
+                            0x21);
+
+    return;
+}
+void MP4File::AddH265PictureParameterSet (MP4TrackId trackId,
+        const uint8_t *pPict,
+        uint16_t pictLen)
+{
+    MP4Atom *hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.hev1.hvcC"));
+    MP4Integer16Property *pCount;
+    MP4Integer16Property *pLength;
+    MP4BytesProperty *pUnit;
+    if ((hvcCAtom->FindProperty("hvcC.numOfPictureParameterSets",
+                                (MP4Property **)&pCount) == false) ||
+            (hvcCAtom->FindProperty("hvcC.pictureEntries.pictureParameterSetLength",
+                                    (MP4Property **)&pLength) == false) ||
+            (hvcCAtom->FindProperty("hvcC.pictureEntries.pictureParameterSetNALUnit",
+                                    (MP4Property **)&pUnit) == false)) {
+        log.errorf("%s: \"%s\": Could not find hvcC picture table properties",
+                   __FUNCTION__, GetFilename().c_str());
+        return;
+    }
+
+    ASSERT(pCount);
+    uint32_t count = pCount->GetValue();
+
+    if (count > 0) {
+        // see if we already exist
+        for (uint32_t index = 0; index < count; index++) {
+            if (pLength->GetValue(index) == pictLen) {
+                uint8_t *seq;
+                uint32_t seqlen;
+                pUnit->GetValue(&seq, &seqlen, index);
+                if (memcmp(seq, pPict, pictLen) == 0) {
+                    log.verbose1f("\"%s\": picture matches %d", 
+                                  GetFilename().c_str(), index);
+                    free(seq);
+                    return;
+                }
+                free(seq);
+            }
+        }
+    } else {
+        MP4Integer16Property *pSeqCount;
+        if (hvcCAtom->FindProperty("hvcC.numOfSequences", (MP4Property **)&pSeqCount)) {
+            pSeqCount->IncrementValue();
+        }
+    }
+    pLength->AddValue(pictLen);
+    pUnit->AddValue(pPict, pictLen);
+    pCount->IncrementValue();
+    log.verbose1f("\"%s\": new picture added %d", GetFilename().c_str(),
+                  pCount->GetValue());
+
+    SetTrackIntegerProperty(trackId,
+                            "mdia.minf.stbl.stsd.hev1.hvcC.typeOfPictureParameterSets",
+                            0x22);
+
+    return;
+}
+
 MP4TrackId MP4File::AddH264VideoTrack(
     uint32_t timeScale,
     MP4Duration sampleDuration,
@@ -3697,6 +3982,128 @@ void MP4File::GetTrackH264SeqPictHeaders (MP4TrackId trackId,
     return ;
 }
 
+void MP4File::GetTrackH265SeqPictHeaders (MP4TrackId trackId,
+        uint8_t ***pppVidHeader,
+        uint32_t **ppVidHeaderSize,
+        uint8_t ***pppSeqHeader,
+        uint32_t **ppSeqHeaderSize,
+        uint8_t ***pppPictHeader,
+        uint32_t **ppPictHeaderSize)
+{
+    uint32_t count;
+    const char *format;
+    MP4Atom *hvcCAtom;
+
+    *pppVidHeader = NULL;
+    *pppSeqHeader = NULL;
+    *pppPictHeader = NULL;
+    *ppVidHeaderSize = NULL;
+    *ppSeqHeaderSize = NULL;
+    *ppPictHeaderSize = NULL;
+
+    // get 4cc media format - can be hev1 or encv for ismacrypted track
+    format = GetTrackMediaDataName (trackId);
+
+    if (!strcasecmp(format, "hev1"))
+        hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.hev1.hvcC"));
+    else if (!strcasecmp(format, "encv"))
+        hvcCAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.encv.hvcC"));
+    else
+        // huh?  unknown track format
+        return;
+
+    MP4Integer16Property *pVidCount, *pSeqCount, *pPictCount;
+    MP4Integer16Property *pVidLen, *pSeqLen, *pPictLen;
+    MP4BytesProperty *pVidVal, *pSeqVal, *pPictVal;
+
+    //vps
+    if ((hvcCAtom->FindProperty("hvcC.numOfVideoParameterSets",
+                                    (MP4Property **)&pVidCount) == false) ||
+                (hvcCAtom->FindProperty("hvcC.videoEntries.videoParameterSetLength",
+                                        (MP4Property **)&pVidLen) == false) ||
+                (hvcCAtom->FindProperty("hvcC.videoEntries.videoParameterSetNALUnit",
+                                        (MP4Property **)&pVidVal) == false)) {
+            log.errorf("%s: \"%s\": Could not find hvcC properties", __FUNCTION__, GetFilename().c_str());
+            return ;
+        }
+        uint8_t **ppVidHeader =
+            (uint8_t **)malloc((pVidCount->GetValue() + 1) * sizeof(uint8_t *));
+        if (ppVidHeader == NULL) return;
+        *pppVidHeader = ppVidHeader;
+
+        uint32_t *pVidHeaderSize =
+            (uint32_t *)malloc((pVidCount->GetValue() + 1) * sizeof(uint32_t *));
+
+        if (pVidHeaderSize == NULL) return;
+
+        *ppVidHeaderSize = pVidHeaderSize;
+        for (count = 0; count < pVidCount->GetValue(); count++) {
+            pVidVal->GetValue(&(ppVidHeader[count]), &(pVidHeaderSize[count]),
+                              count);
+        }
+        ppVidHeader[count] = NULL;
+        pVidHeaderSize[count] = 0;
+
+    //sps
+    if ((hvcCAtom->FindProperty("hvcC.numOfSequenceParameterSets",
+                                (MP4Property **)&pSeqCount) == false) ||
+            (hvcCAtom->FindProperty("hvcC.sequenceEntries.sequenceParameterSetLength",
+                                    (MP4Property **)&pSeqLen) == false) ||
+            (hvcCAtom->FindProperty("hvcC.sequenceEntries.sequenceParameterSetNALUnit",
+                                    (MP4Property **)&pSeqVal) == false)) {
+        log.errorf("%s: \"%s\": Could not find hvcC properties", __FUNCTION__, GetFilename().c_str());
+        return ;
+    }
+    uint8_t **ppSeqHeader =
+        (uint8_t **)malloc((pSeqCount->GetValue() + 1) * sizeof(uint8_t *));
+    if (ppSeqHeader == NULL) return;
+    *pppSeqHeader = ppSeqHeader;
+
+    uint32_t *pSeqHeaderSize =
+        (uint32_t *)malloc((pSeqCount->GetValue() + 1) * sizeof(uint32_t *));
+
+    if (pSeqHeaderSize == NULL) return;
+
+    *ppSeqHeaderSize = pSeqHeaderSize;
+    for (count = 0; count < pSeqCount->GetValue(); count++) {
+        pSeqVal->GetValue(&(ppSeqHeader[count]), &(pSeqHeaderSize[count]),
+                          count);
+    }
+    ppSeqHeader[count] = NULL;
+    pSeqHeaderSize[count] = 0;
+
+    //pps
+    if ((hvcCAtom->FindProperty("hvcC.numOfPictureParameterSets",
+                                (MP4Property **)&pPictCount) == false) ||
+            (hvcCAtom->FindProperty("hvcC.pictureEntries.pictureParameterSetLength",
+                                    (MP4Property **)&pPictLen) == false) ||
+            (hvcCAtom->FindProperty("hvcC.pictureEntries.pictureParameterSetNALUnit",
+                                    (MP4Property **)&pPictVal) == false)) {
+        log.errorf("%s: \"%s\": Could not find hvcC picture table properties",
+                   __FUNCTION__, GetFilename().c_str());
+        return ;
+    }
+    uint8_t
+    **ppPictHeader =
+        (uint8_t **)malloc((pPictCount->GetValue() + 1) * sizeof(uint8_t *));
+    if (ppPictHeader == NULL) return;
+    uint32_t *pPictHeaderSize =
+        (uint32_t *)malloc((pPictCount->GetValue() + 1)* sizeof(uint32_t *));
+    if (pPictHeaderSize == NULL) {
+        free(ppPictHeader);
+        return;
+    }
+    *pppPictHeader = ppPictHeader;
+    *ppPictHeaderSize = pPictHeaderSize;
+
+    for (count = 0; count < pPictCount->GetValue(); count++) {
+        pPictVal->GetValue(&(ppPictHeader[count]), &(pPictHeaderSize[count]),
+                           count);
+    }
+    ppPictHeader[count] = NULL;
+    pPictHeaderSize[count] = 0;
+    return ;
+}
 
 
 const char* MP4File::GetHintTrackSdp(MP4TrackId hintTrackId)

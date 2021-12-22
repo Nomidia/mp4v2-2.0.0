@@ -363,6 +363,42 @@ public:
     void AddH264PictureParameterSet(MP4TrackId trackId,
                                     const uint8_t *pPicture,
                                     uint16_t pictureLen);
+
+    void SetH265VideoConfig(
+        MP4TrackId trackId,
+        uint8_t generalProfileSpace,
+        uint8_t generalTierFlag,
+        uint8_t generalProfile,
+        uint32_t generalProfileCompatibilityFlags,
+        uint64_t generalConstraintIndicatorFlags,
+        uint8_t generalLevel,
+        uint32_t minSpatialSegmentation,
+        uint8_t parallelismType,
+        uint8_t chromaFormat,
+        uint8_t lumaBitDepth,
+        uint8_t chromaBitDepth,
+        uint16_t averageFrameRate,
+        uint8_t constantFrameRate,
+        uint8_t numTemporalLayers,
+        uint8_t temporalIdNested);
+
+    MP4TrackId AddH265VideoTrack(
+        uint32_t timeScale,
+        MP4Duration sampleDuration,
+        uint16_t width,
+        uint16_t height,
+        uint8_t lengthSizeMinusOne);
+
+    void AddH265VideoParameterSet (MP4TrackId trackId,
+                                    const uint8_t *pVideo,
+                                    uint16_t videoLen);
+    void AddH265SequenceParameterSet(MP4TrackId trackId,
+                                     const uint8_t *pSequence,
+                                     uint16_t sequenceLen);
+    void AddH265PictureParameterSet(MP4TrackId trackId,
+                                    const uint8_t *pPicture,
+                                    uint16_t pictureLen);
+
     MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
     MP4TrackId AddTextTrack(MP4TrackId refTrackId);
@@ -553,6 +589,13 @@ public:
     void GetTrackVideoMetadata(MP4TrackId trackId,
                                uint8_t** ppConfig, uint32_t* pConfigSize);
     void GetTrackH264SeqPictHeaders(MP4TrackId trackId,
+                                    uint8_t ***pSeqHeader,
+                                    uint32_t **pSeqHeaderSize,
+                                    uint8_t ***pPictHeader,
+                                    uint32_t **pPictHeaderSize);
+    void GetTrackH265SeqPictHeaders(MP4TrackId trackId,
+                                    uint8_t ***pppVidHeader,
+                                    uint32_t **ppVidHeaderSize,
                                     uint8_t ***pSeqHeader,
                                     uint32_t **pSeqHeaderSize,
                                     uint8_t ***pPictHeader,

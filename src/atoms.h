@@ -155,6 +155,30 @@ private:
     MP4AmrAtom &operator= ( const MP4AmrAtom &src );
 };
 
+
+// H.265 atoms
+
+class MP4Hev1Atom : public MP4Atom {
+public:
+    MP4Hev1Atom(MP4File &file);
+    void Generate();
+private:
+    MP4Hev1Atom();
+    MP4Hev1Atom( const MP4Hev1Atom &src );
+    MP4Hev1Atom &operator= ( const MP4Hev1Atom &src );
+};
+
+class MP4HvcCAtom : public MP4Atom {
+public:
+    MP4HvcCAtom(MP4File &file);
+    void Generate();
+    void Clone(MP4HvcCAtom *dstAtom);
+private:
+    MP4HvcCAtom();
+    MP4HvcCAtom( const MP4HvcCAtom &src );
+    MP4HvcCAtom &operator= ( const MP4HvcCAtom &src );
+};
+
 // H.264 atoms
 
 class MP4Avc1Atom : public MP4Atom {
