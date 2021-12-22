@@ -2,6 +2,26 @@
 #include "avc_hevc_parser.h"
 #include <string.h>
 
+// Reference to Bento4 Ap4AvcParser.cpp/Ap4HevcParser.cpp
+
+/*----------------------------------------------------------------------
+|   ReadGolomb
++---------------------------------------------------------------------*/
+static uint32_t
+ReadGolomb(LC_MP4_BitReader& bits)
+{
+    uint32_t leading_zeros = 0;
+    while (bits.ReadBit() == 0) {
+        leading_zeros++;
+        if (leading_zeros > 32) return 0; // safeguard
+    }
+    if (leading_zeros) {
+        return (1<<leading_zeros)-1+bits.ReadBits(leading_zeros);
+    } else {
+        return 0;
+    }
+}
+
 int get_one_nalu_from_buf(const uint8_t *buffer, uint32_t size, uint32_t offset, LC_MP4_MUXER_Nalu_t* nalu)
 {
     int i = offset;
@@ -26,54 +46,56 @@ int get_one_nalu_from_buf(const uint8_t *buffer, uint32_t size, uint32_t offset,
     return 0;
 }
 
-int parse_h264_sps(uint8_t *sps, uint32_t sps_size, LC_MP4_AVC_SPS_INFO_t *sps_info)
+/*----------------------------------------------------------------------
+|   LC_MP4_AvcPictureParameterSet::LC_MP4_PictureParameterSet
++---------------------------------------------------------------------*/
+LC_MP4_AvcSequenceParameterSet::LC_MP4_AvcSequenceParameterSet() :
+    profile_idc(0),
+    constraint_set0_flag(0),
+    constraint_set1_flag(0),
+    constraint_set2_flag(0),
+    constraint_set3_flag(0),
+    level_idc(0),
+    seq_parameter_set_id(0)
 {
-    if (!sps_info)
-        return -1;
-    sps_info->profile_idc = sps[1];
-    sps_info->profile_compat = sps[2];
-    sps_info->level_idc = sps[3];
-    sps_info->sample_len_field_size_minus_one = 3;
+}
+
+int LC_MP4_AvcSequenceParameterSet::Parse(const uint8_t* data, uint32_t data_size)
+{
+    LC_MP4_BitReader bits(data, data_size);
+
+    bits.SkipBits(8); // NAL Unit Header
+
+    profile_idc = bits.ReadBits(8);
+    constraint_set0_flag = bits.ReadBit();
+    constraint_set1_flag = bits.ReadBit();
+    constraint_set2_flag = bits.ReadBit();
+    constraint_set3_flag = bits.ReadBit();
+    bits.SkipBits(4);
+    level_idc = bits.ReadBits(8);
+    seq_parameter_set_id = ReadGolomb(bits);
+    // TODO
     return 0;
 }
-
-/*----------------------------------------------------------------------
-|   ReadGolomb
-+---------------------------------------------------------------------*/
-static unsigned int
-ReadGolomb(LC_MP4_BitReader& bits)
-{
-    unsigned int leading_zeros = 0;
-    while (bits.ReadBit() == 0) {
-        leading_zeros++;
-        if (leading_zeros > 32) return 0; // safeguard
-    }
-    if (leading_zeros) {
-        return (1<<leading_zeros)-1+bits.ReadBits(leading_zeros);
-    } else {
-        return 0;
-    }
-}
-
 /*----------------------------------------------------------------------
 |   scaling_list_data
 +---------------------------------------------------------------------*/
 static void scaling_list_data(LC_MP4_BitReader& bits)
 {
-    for (unsigned int sizeId = 0; sizeId < 4; sizeId++) {
-        for (unsigned int matrixId = 0; matrixId < (unsigned int)((sizeId == 3)?2:6); matrixId++) {
-            unsigned int flag = bits.ReadBit(); // scaling_list_pred_mode_flag[ sizeId ][ matrixId ]
+    for (uint32_t sizeId = 0; sizeId < 4; sizeId++) {
+        for (uint32_t matrixId = 0; matrixId < (uint32_t)((sizeId == 3)?2:6); matrixId++) {
+            uint32_t flag = bits.ReadBit(); // scaling_list_pred_mode_flag[ sizeId ][ matrixId ]
             if (!flag) {
                 ReadGolomb(bits); // scaling_list_pred_matrix_id_delta[ sizeId ][ matrixId ]
             } else {
                 // nextCoef = 8;
-                unsigned int coefNum = (1 << (4+(sizeId << 1)));
+                uint32_t coefNum = (1 << (4+(sizeId << 1)));
                 if (coefNum > 64) coefNum = 64;
                 if (sizeId > 1) {
                     ReadGolomb(bits); // scaling_list_dc_coef_minus8[ sizeId − 2 ][ matrixId ]
                     // nextCoef = scaling_list_dc_coef_minus8[ sizeId − 2 ][ matrixId ] + 8
                 }
-                for (unsigned i = 0; i < coefNum; i++) {
+                for (uint32_t i = 0; i < coefNum; i++) {
                     ReadGolomb(bits); // scaling_list_delta_coef
                     // nextCoef = ( nextCoef + scaling_list_delta_coef + 256 ) % 256
                     // ScalingList[ sizeId ][ matrixId ][ i ] = nextCoef
@@ -88,28 +110,28 @@ static void scaling_list_data(LC_MP4_BitReader& bits)
 +---------------------------------------------------------------------*/
 static int parse_st_ref_pic_set(LC_MP4_HevcShortTermRefPicSet*         rps,
                      const LC_MP4_HevcSequenceParameterSet* sps,
-                     unsigned int                           stRpsIdx,
-                     unsigned int                           num_short_term_ref_pic_sets,
+                     uint32_t                           stRpsIdx,
+                     uint32_t                           num_short_term_ref_pic_sets,
                      LC_MP4_BitReader&                      bits) {
     memset(rps, 0, sizeof(*rps));
 
-    unsigned int inter_ref_pic_set_prediction_flag = 0;
+    uint32_t inter_ref_pic_set_prediction_flag = 0;
     if (stRpsIdx != 0) {
         inter_ref_pic_set_prediction_flag = bits.ReadBit();
     }
     if (inter_ref_pic_set_prediction_flag) {
-        unsigned int delta_idx_minus1 = 0;
+        uint32_t delta_idx_minus1 = 0;
         if (stRpsIdx == num_short_term_ref_pic_sets) {
             delta_idx_minus1 = ReadGolomb(bits);
         }
         /* delta_rps_sign = */ bits.ReadBit();
         /* abs_delta_rps_minus1 = */ ReadGolomb(bits);
         if (delta_idx_minus1+1 > stRpsIdx) return -10; // should not happen
-        unsigned int RefRpsIdx = stRpsIdx - (delta_idx_minus1 + 1);
-        unsigned int NumDeltaPocs = sps->short_term_ref_pic_sets[RefRpsIdx].num_delta_pocs;
-        for (unsigned j=0; j<=NumDeltaPocs; j++) {
-            unsigned int used_by_curr_pic_flag /*[j]*/ = bits.ReadBit();
-            unsigned int use_delta_flag /*[j]*/ = 1;
+        uint32_t RefRpsIdx = stRpsIdx - (delta_idx_minus1 + 1);
+        uint32_t NumDeltaPocs = sps->short_term_ref_pic_sets[RefRpsIdx].num_delta_pocs;
+        for (uint32_t j=0; j<=NumDeltaPocs; j++) {
+            uint32_t used_by_curr_pic_flag /*[j]*/ = bits.ReadBit();
+            uint32_t use_delta_flag /*[j]*/ = 1;
             if (!used_by_curr_pic_flag /*[j]*/) {
                 use_delta_flag /*[j]*/ = bits.ReadBit();
             }
@@ -124,11 +146,11 @@ static int parse_st_ref_pic_set(LC_MP4_HevcShortTermRefPicSet*         rps,
             return -10;
         }
         rps->num_delta_pocs = rps->num_negative_pics + rps->num_positive_pics;
-        for (unsigned int i=0; i<rps->num_negative_pics; i++) {
+        for (uint32_t i=0; i<rps->num_negative_pics; i++) {
             rps->delta_poc_s0_minus1[i] = ReadGolomb(bits);
             rps->used_by_curr_pic_s0_flag[i] = bits.ReadBit();
         }
-        for (unsigned i=0; i<rps->num_positive_pics; i++) {
+        for (uint32_t i=0; i<rps->num_positive_pics; i++) {
             rps->delta_poc_s1_minus1[i] = ReadGolomb(bits);
             rps->used_by_curr_pic_s1_flag[i] = bits.ReadBit();
         }
@@ -166,16 +188,16 @@ int LC_MP4_HevcProfileTierLevel::Parse(LC_MP4_BitReader& bits, uint32_t max_num_
     general_constraint_indicator_flags |= bits.ReadBits(32);
     
     general_level_idc                   = bits.ReadBits(8);
-    for (unsigned int i = 0; i < max_num_sub_layers_minus_1; i++) {
+    for (uint32_t i = 0; i < max_num_sub_layers_minus_1; i++) {
         sub_layer_info[i].sub_layer_profile_present_flag = bits.ReadBit();
         sub_layer_info[i].sub_layer_level_present_flag   = bits.ReadBit();
     }
     if (max_num_sub_layers_minus_1) {
-        for (unsigned int i = max_num_sub_layers_minus_1; i < 8; i++) {
+        for (uint32_t i = max_num_sub_layers_minus_1; i < 8; i++) {
             bits.ReadBits(2); // reserved_zero_2bits[i]
         }
     }
-    for (unsigned int i = 0; i < max_num_sub_layers_minus_1; i++) {
+    for (uint32_t i = 0; i < max_num_sub_layers_minus_1; i++) {
         if (sub_layer_info[i].sub_layer_profile_present_flag) {
             sub_layer_info[i].sub_layer_profile_space               = bits.ReadBits(2);
             sub_layer_info[i].sub_layer_tier_flag                   = bits.ReadBit();
@@ -239,7 +261,7 @@ LC_MP4_HevcSequenceParameterSet::LC_MP4_HevcSequenceParameterSet() :
     strong_intra_smoothing_enabled_flag(0)
 {
     memset(&profile_tier_level, 0, sizeof(profile_tier_level));
-    for (unsigned int i=0; i<8; i++) {
+    for (uint32_t i=0; i<8; i++) {
         sps_max_dec_pic_buffering_minus1[i] = 0;
         sps_max_num_reorder_pics[i]         = 0;
         sps_max_latency_increase_plus1[i]   = 0;
@@ -250,7 +272,7 @@ LC_MP4_HevcSequenceParameterSet::LC_MP4_HevcSequenceParameterSet() :
 /*----------------------------------------------------------------------
 |   LC_MP4_HevcSequenceParameterSet::Parse
 +---------------------------------------------------------------------*/
-int LC_MP4_HevcSequenceParameterSet::Parse(const uint8_t* data, unsigned int data_size)
+int LC_MP4_HevcSequenceParameterSet::Parse(const uint8_t* data, uint32_t data_size)
 {
     LC_MP4_BitReader bits(data, data_size);
 
@@ -291,7 +313,7 @@ int LC_MP4_HevcSequenceParameterSet::Parse(const uint8_t* data, unsigned int dat
         return -10;
     }
     sps_sub_layer_ordering_info_present_flag = bits.ReadBit();
-    for (unsigned int i = (sps_sub_layer_ordering_info_present_flag ? 0 : sps_max_sub_layers_minus1);
+    for (uint32_t i = (sps_sub_layer_ordering_info_present_flag ? 0 : sps_max_sub_layers_minus1);
                       i <= sps_max_sub_layers_minus1;
                       i++) {
         sps_max_dec_pic_buffering_minus1[i] = ReadGolomb(bits);
@@ -325,14 +347,14 @@ int LC_MP4_HevcSequenceParameterSet::Parse(const uint8_t* data, unsigned int dat
     if (num_short_term_ref_pic_sets > LC_MP4_HEVC_SPS_MAX_RPS) {
         return -10;
     }
-    for (unsigned int i=0; i<num_short_term_ref_pic_sets; i++) {
+    for (uint32_t i=0; i<num_short_term_ref_pic_sets; i++) {
         result = parse_st_ref_pic_set(&short_term_ref_pic_sets[i], this, i, num_short_term_ref_pic_sets, bits);
         if (result != 0) return result;
     }
     long_term_ref_pics_present_flag = bits.ReadBit();
     if (long_term_ref_pics_present_flag) {
         num_long_term_ref_pics_sps = ReadGolomb(bits);
-        for (unsigned int i=0; i<num_long_term_ref_pics_sps; i++) {
+        for (uint32_t i=0; i<num_long_term_ref_pics_sps; i++) {
             /* lt_ref_pic_poc_lsb_sps[i] = */ bits.ReadBits(log2_max_pic_order_cnt_lsb_minus4 + 4);
             /* used_by_curr_pic_lt_sps_flag[i] = */ bits.ReadBit();
         }

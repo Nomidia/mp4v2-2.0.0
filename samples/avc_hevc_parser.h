@@ -12,14 +12,18 @@ typedef struct
 int get_one_nalu_from_buf(const uint8_t *buffer, uint32_t size, uint32_t offset, LC_MP4_MUXER_Nalu_t* nalu);
 
 // avc
-typedef struct{
-    uint8_t profile_idc;
-    uint8_t profile_compat;
-    uint8_t level_idc;
-    uint8_t sample_len_field_size_minus_one;
-}LC_MP4_AVC_SPS_INFO_t;
-
-int parse_h264_sps(uint8_t *sps, uint32_t sps_size, LC_MP4_AVC_SPS_INFO_t *sps_info);
+struct LC_MP4_AvcSequenceParameterSet {
+    LC_MP4_AvcSequenceParameterSet();
+    // methods
+    int Parse(const uint8_t* data, uint32_t data_size);
+    uint32_t profile_idc;
+    uint32_t constraint_set0_flag;
+    uint32_t constraint_set1_flag;
+    uint32_t constraint_set2_flag;
+    uint32_t constraint_set3_flag;
+    uint32_t level_idc;
+    uint32_t seq_parameter_set_id;
+};
 
 // hevc
 const uint32_t LC_MP4_HEVC_PPS_MAX_ID               = 63;
@@ -74,10 +78,9 @@ struct LC_MP4_HevcProfileTierLevel {
 
 struct LC_MP4_HevcSequenceParameterSet {
     LC_MP4_HevcSequenceParameterSet();
-    
+
     // methods
     int Parse(const uint8_t* data, uint32_t data_size);
-    void GetInfo(uint32_t& width, uint32_t& height);
 
     uint32_t             sps_video_parameter_set_id;
     uint32_t             sps_max_sub_layers_minus1;

@@ -207,10 +207,12 @@ int handle_video_h264(LC_MP4_MUXER_INFO_t *mux, uint8_t *nal_unit, int nal_unit_
     switch (nalu_type) {
         case LC_MP4_AVC_NAL_UNIT_TYPE_SPS:
             if (mux->info.video_track_id == MP4_INVALID_TRACK_ID) {
-                LC_MP4_AVC_SPS_INFO_t sps_info;
-                parse_h264_sps(nal_unit, nal_unit_size, &sps_info);
+                LC_MP4_AvcSequenceParameterSet sps;
+                sps.Parse(nal_unit, nal_unit_size);
+                uint8_t nalue_size_minus_one = 3;
+                uint32_t profile_compat = sps.constraint_set0_flag<<7 | sps.constraint_set1_flag<<6 | sps.constraint_set2_flag<<5 | sps.constraint_set3_flag<<4;
                 mux->info.video_track_id = MP4AddH264VideoTrack(mux->hFile, mux->info.video_timescale, mux->info.video_timescale / mux->info.fps,
-                    mux->info.w, mux->info.h, sps_info.profile_idc, sps_info.profile_compat, sps_info.level_idc, sps_info.sample_len_field_size_minus_one);
+                    mux->info.w, mux->info.h, sps.profile_idc, profile_compat, sps.level_idc, nalue_size_minus_one);
 
                 MP4AddH264SequenceParameterSet(mux->hFile, mux->info.video_track_id, nal_unit, nal_unit_size);
             }
