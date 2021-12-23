@@ -570,8 +570,8 @@ void* lc_mp4_demuxer_open(const char *file, uint64_t start_pts)
     // get the moov
     parse_mp4info(demux);
 
-    demux->video_pts = 0;
-    demux->audio_pts = 0;
+    demux->video_abs_ts = 0;
+    demux->audio_abs_ts = 0;
 
     demux->cur_pts = start_pts;
     demux->moov.start_pts = start_pts;
@@ -600,12 +600,13 @@ void lc_mp4_demuxer_close(void* demux)
 
     LC_MP4_DEMUXER_INFO_t* dmux = (LC_MP4_DEMUXER_INFO_t*)demux;
     MP4Close(dmux->hFile);
-    if (dmux->buf) {
-        LC_MP4_FREE(dmux->buf);
-    }
-    if (dmux->frame) {
-        LC_MP4_FREE(dmux->frame);
-    }
+
+    LC_MP4_FREE(dmux->buf);
+    LC_MP4_FREE(dmux->frame);
+
+    LC_MP4_FREE(dmux->moov.video_prefix);
+    LC_MP4_FREE(dmux->moov.audio_aes);
+
     free(dmux);
     printf("close demuxer ok\n");
 }
@@ -667,7 +668,7 @@ LC_MP4_MUXER_FRAME_t* lc_mp4_demux_read_frame(void* demux)
             is_video = false;
         } else {
             // audio and video synchronization
-            if (dmx->video_pts < dmx->audio_pts) {
+            if (dmx->video_abs_ts < dmx->audio_abs_ts) {
                 is_video = true;
             }
         }
@@ -681,14 +682,14 @@ LC_MP4_MUXER_FRAME_t* lc_mp4_demux_read_frame(void* demux)
             continue;
         }
 
-        // sync time after seek, when abs(video_pts - audio_pts) >= 500
-        if (!is_video && !dmx->video_finished && (dmx->audio_pts + 500 < dmx->video_pts)) {
-            printf("sync video_pts = %lu, audio_pts = %lu\n", dmx->video_pts, dmx->audio_pts);
-            printf("sync video and audio, span = %lu\n", dmx->video_pts - dmx->audio_pts);
+        // sync time after seek, when abs(video_abs_ts - audio_abs_ts) >= 500
+        if (!is_video && !dmx->video_finished && (dmx->audio_abs_ts + 500 < dmx->video_abs_ts)) {
+            printf("sync video_abs_ts = %lu, audio_abs_ts = %lu\n", dmx->video_abs_ts, dmx->audio_abs_ts);
+            printf("sync video and audio, span = %lu\n", dmx->video_abs_ts - dmx->audio_abs_ts);
             continue;
         }
 
-        //printf("video ts = %lu, audio ts = %lu, cur ts = %lu\n", dmx->video_pts, dmx->audio_pts, dmx->cur_pts);
+        //printf("video ts = %lu, audio ts = %lu, cur ts = %lu\n", dmx->video_abs_ts, dmx->audio_abs_ts, dmx->cur_pts);
         break;
     }
 
@@ -790,14 +791,14 @@ bool read_one_frame(LC_MP4_DEMUXER_INFO_t *dmx, bool is_video)
     pframe->size = expect_size;
     //printf("pframe->pts_ms = %lu\n", pframe->pts_ms);
     if (is_video) {
-        //dmx->video_pts = starttime + MP4ConvertFromTrackDuration(dmx->hFile, tid, duration, MP4_MSECS_TIME_SCALE);
-        dmx->video_pts = starttime;
-        dmx->cur_pts = dmx->moov.start_pts + dmx->video_pts;
+        //dmx->video_abs_ts = starttime + MP4ConvertFromTrackDuration(dmx->hFile, tid, duration, MP4_MSECS_TIME_SCALE);
+        dmx->video_abs_ts = starttime;
+        dmx->cur_pts = dmx->moov.start_pts + dmx->video_abs_ts;
     } else {
-        //dmx->audio_pts = starttime + MP4ConvertFromTrackDuration(dmx->hFile, tid, duration, MP4_MSECS_TIME_SCALE);
-        dmx->audio_pts = starttime;
+        //dmx->audio_abs_ts = starttime + MP4ConvertFromTrackDuration(dmx->hFile, tid, duration, MP4_MSECS_TIME_SCALE);
+        dmx->audio_abs_ts = starttime;
         if (dmx->moov.video_track_id == MP4_INVALID_TRACK_ID)
-            dmx->cur_pts = dmx->moov.start_pts + dmx->audio_pts;
+            dmx->cur_pts = dmx->moov.start_pts + dmx->audio_abs_ts;
     }
 
     return true;
@@ -878,12 +879,12 @@ int lc_mp4_demux_seek(void* demux, int64_t start_pts)
     dmx->video_sample_id = video_sample_id;
     dmx->audio_sample_id = audio_sample_id;
 
-    dmx->video_pts = video_start_ms;
-    dmx->audio_pts = audio_start_ms;
+    dmx->video_abs_ts = video_start_ms;
+    dmx->audio_abs_ts = audio_start_ms;
     if (audio_sample_id != MP4_INVALID_SAMPLE_ID) {
-        dmx->cur_pts = dmx->moov.start_pts + dmx->video_pts;
+        dmx->cur_pts = dmx->moov.start_pts + dmx->video_abs_ts;
     } else {
-        dmx->cur_pts = dmx->moov.start_pts + dmx->audio_pts;
+        dmx->cur_pts = dmx->moov.start_pts + dmx->audio_abs_ts;
     }
     LC_MP4_MUXER_FRAME_t* pframe = (LC_MP4_MUXER_FRAME_t*)dmx->frame;
     pframe->pts_ms = dmx->cur_pts;

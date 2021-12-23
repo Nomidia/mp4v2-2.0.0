@@ -128,8 +128,8 @@ typedef struct{
     int32_t video_sample_id;
 
     int64_t cur_pts; // current time in ms
-    MP4Timestamp video_pts; // absolute time
-    MP4Timestamp audio_pts;
+    MP4Timestamp video_abs_ts; // absolute time
+    MP4Timestamp audio_abs_ts;
 }LC_MP4_DEMUXER_INFO_t;
 
 inline void LC_MP4_BytesFromUInt32BE(uint8_t* bytes, uint32_t value)
