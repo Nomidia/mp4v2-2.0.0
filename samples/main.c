@@ -133,7 +133,7 @@ int record_aac()
 
 int read_file_264()
 {
-    void *demuxer = lc_mp4_demuxer_open("264_alaw.mp4", 0); //1639472160000
+    void *demuxer = lc_mp4_demuxer_open("./media/264_alaw.mp4", 0); //1639472160000
     LC_MP4_DEMUXER_CODEC_t* info = lc_mp4_demux_get_info(demuxer);
     if (!info)
         return -1;
@@ -143,11 +143,15 @@ int read_file_264()
     int i = 0;
 
     FILE *fp_out = NULL;
-    fp_out = fopen("264_alaw.264", "wb+");
+    fp_out = fopen("./media/264_alaw.264", "wb+");
     lc_mp4_demux_seek(demuxer, 10000);
-    while (pframe = lc_mp4_demux_read_frame(demuxer)) {
-        if (pframe->is_video)
+    printf("cur_pts = %ld\n", lc_mp4_demux_get_cur_pts(demuxer));
+    int index = 0;
+    while ((pframe = lc_mp4_demux_read_frame(demuxer)) && index++ < 50) {
+        if (pframe->is_video) {
+            //printf("cur_pts = %ld\n", lc_mp4_demux_get_cur_pts(demuxer));
             fwrite(pframe->buf, 1, pframe->size, fp_out);
+        }
         //printf("[%d]pts = %lu,  payload_type = %d, is_video = %d, is_key_frame = %d, size = %d\n",
         //    i++, pframe->pts_ms, pframe->paylaod_type, pframe->is_video, pframe->is_key_frame, pframe->size);
     }
@@ -266,8 +270,8 @@ int main(int argc, char* argv[])
     //record_h264();
     //record_h265();
     //record_g711a();
-    //read_file_264();
-    read_file_265();
+    read_file_264();
+    //read_file_265();
     //read_file_audio();
     //read_file_audio_aac();
     //record_aac();

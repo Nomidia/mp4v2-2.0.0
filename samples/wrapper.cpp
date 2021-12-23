@@ -569,12 +569,9 @@ void* lc_mp4_demuxer_open(const char *file, uint64_t start_pts)
 
     // get the moov
     parse_mp4info(demux);
-    // TODO for test
-    //demux->audio_finished = true;
-    //demux->video_finished = true;
 
-    demux->video_pts = start_pts;
-    demux->audio_pts = start_pts;
+    demux->video_pts = 0;
+    demux->audio_pts = 0;
 
     demux->cur_pts = start_pts;
     demux->moov.start_pts = start_pts;
@@ -637,8 +634,8 @@ int64_t lc_mp4_demux_get_cur_pts(void* demux)
     int64_t pts = 0;
     LC_MP4_DEMUXER_INFO_t* dmx = (LC_MP4_DEMUXER_INFO_t*)demux;
     if (dmx && dmx->frame) {
-        LC_MP4_DEMUXER_INFO_t* pframe = (LC_MP4_DEMUXER_INFO_t*)dmx->frame;
-        pts = pframe->cur_pts;
+        LC_MP4_MUXER_FRAME_t* pframe = (LC_MP4_MUXER_FRAME_t*)dmx->frame;
+        pts = pframe->pts_ms;
     }
 
     return pts;
@@ -842,7 +839,7 @@ int lc_mp4_demux_seek(void* demux, int64_t start_pts)
     MP4TrackId tid = MP4_INVALID_TRACK_ID;
     bool want_sync = true;
     MP4Timestamp when = 0;
-    MP4Timestamp video_start_ms, audio_start_ms;
+    MP4Timestamp video_start_ms = 0, audio_start_ms = 0;
     MP4TrackId video_sample_id = MP4_INVALID_TRACK_ID;
     MP4TrackId audio_sample_id = MP4_INVALID_TRACK_ID;
     if (dmx->moov.video_track_id != MP4_INVALID_TRACK_ID) {
@@ -888,6 +885,8 @@ int lc_mp4_demux_seek(void* demux, int64_t start_pts)
     } else {
         dmx->cur_pts = dmx->moov.start_pts + dmx->audio_pts;
     }
+    LC_MP4_MUXER_FRAME_t* pframe = (LC_MP4_MUXER_FRAME_t*)dmx->frame;
+    pframe->pts_ms = dmx->cur_pts;
 
     return 0;
 }
