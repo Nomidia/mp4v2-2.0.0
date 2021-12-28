@@ -12,3 +12,4 @@ include/mp4v2/project.h
 util/impl.h.gch/exe
 src/impl.h.gch/static
 libutil/impl.h.gch/static
+autom4te.cache
