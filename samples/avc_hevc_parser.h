@@ -3,6 +3,26 @@
 
 #include "bit_reader.h"
 
+
+#define LC_MP4_ADTS_HEADER_SIZE 7
+#define LC_MP4_ADTS_SYNC_MASK     0xFFF6 /* 12 sync bits plus 2 layer bits */
+#define LC_MP4_ADTS_SYNC_PATTERN  0xFFF0 /* 12 sync bits=1 layer=0         */
+
+typedef enum {
+    LC_MP4_AAC_MAIN = 1,
+    LC_MP4_AAC_LC = 2,
+    LC_MP4_AAC_SSR = 3,
+    LC_MP4_AAC_LTP = 4,
+    LC_MP4_SBR = 5,
+    LC_MP4_AAC_SCALABLE = 6,
+} LC_MP4_MPEG4_AUDIO_OBJECT_TYPES;
+
+uint32_t get_sampling_frequency_index(uint32_t sampling_frequency);
+
+bool find_adts_head(uint8_t *data, uint32_t size, uint8_t *header);
+
+void make_dsi(uint32_t sampling_frequency_index,uint32_t channel_configuration, uint8_t* dsi);
+
 typedef struct
 {
     uint32_t nal_unit_size;
@@ -10,6 +30,59 @@ typedef struct
 }LC_MP4_MUXER_Nalu_t;
 
 int get_one_nalu_from_buf(const uint8_t *buffer, uint32_t size, uint32_t offset, LC_MP4_MUXER_Nalu_t* nalu);
+
+// video
+
+/*----------------------------------------------------------------------
+|   constants
++---------------------------------------------------------------------*/
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_UNSPECIFIED                       = 0;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_CODED_SLICE_OF_NON_IDR_PICTURE    = 1;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_CODED_SLICE_DATA_PARTITION_A      = 2;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_CODED_SLICE_DATA_PARTITION_B      = 3;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_CODED_SLICE_DATA_PARTITION_C      = 4;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_CODED_SLICE_OF_IDR_PICTURE        = 5;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_SEI                               = 6;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_SPS                               = 7;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_PPS                               = 8;
+const uint32_t LC_MP4_AVC_NAL_UNIT_TYPE_ACCESS_UNIT_DELIMITER             = 9;
+
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_TRAIL_N        = 0;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_TRAIL_R        = 1;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_TSA_N          = 2;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_TSA_R          = 3;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_STSA_N         = 4;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_STSA_R         = 5;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RADL_N         = 6;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RADL_R         = 7;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RASL_N         = 8;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RASL_R         = 9;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL_N10    = 10;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL_R11    = 11;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL_N12    = 12;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL_R13    = 13;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL_N14    = 14;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL_R15    = 15;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_BLA_W_LP       = 16;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_BLA_W_RADL     = 17;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_BLA_N_LP       = 18;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_IDR_W_RADL     = 19;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_IDR_N_LP       = 20;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_CRA_NUT        = 21;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_IRAP_VCL22 = 22;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_IRAP_VCL23 = 23;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL24      = 24;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL25      = 25;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL26      = 26;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL27      = 27;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL28      = 28;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL29      = 29;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL30      = 30;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_RSV_VCL31      = 31;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_VPS_NUT        = 32;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_SPS_NUT        = 33;
+const uint32_t LC_MP4_HEVC_NAL_UNIT_TYPE_PPS_NUT        = 34;
+
 
 // avc
 struct LC_MP4_AvcSequenceParameterSet {

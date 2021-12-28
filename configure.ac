@@ -4,15 +4,15 @@
 
 m4_include([project/project.m4sugar])
 
-m4_define([SVNINFO],m4_esyscmd([LANG=en svn info 2>/dev/null]))
+#m4_define([SVNINFO],m4_esyscmd([LANG=en svn info 2>/dev/null]))
 
 changequote(<<,>>)dnl
-    m4_define(<<PRJ_repo_url>>,m4_bregexp(SVNINFO,<<^URL: *\(.+\)>>,<<\1>>))
-    m4_define(<<PRJ_repo_branch>>,m4_bregexp(PRJ_repo_url,<<\([^/]+\)$>>,<<\1>>))
-    m4_define(<<PRJ_repo_root>>,m4_bregexp(SVNINFO,<<^Repository Root: *\(.+\)>>,<<\1>>))
-    m4_define(<<PRJ_repo_uuid>>,m4_bregexp(SVNINFO,<<^Repository UUID: *\(.+\)>>,<<\1>>))
-    m4_define(<<PRJ_repo_rev>>,m4_bregexp(SVNINFO,<<^Last Changed Rev: *\(.+\)>>,<<\1>>))
-    m4_define(<<PRJ_repo_date>>,m4_bregexp(SVNINFO,<<^Last Changed Date: *\(.+\)>>,<<\1>>))
+    m4_define(<<PRJ_repo_url>>,<<https://mp4v2.googlecode.com/svn/releases/2.0.0>>)
+    m4_define(<<PRJ_repo_branch>>,<<2.0.0>>)
+    m4_define(<<PRJ_repo_root>>,<<https://mp4v2.googlecode.com/svn>>)
+    m4_define(<<PRJ_repo_uuid>>,<<6e6572fa-98a6-11dd-ad9f-f77439c74b79>>)
+    m4_define(<<PRJ_repo_rev>>,<<493>>)
+    m4_define(<<PRJ_repo_date>>,<<2012-05-20 15:16:54 -0700 (Sun, 20 May 2012)>>)
     m4_define(<<PRJ_repo_type>>,ifelse(m4_bregexp(PRJ_repo_url,<</releases/>>),<<-1>>,<<developer>>,<<stable>>))
 changequote([,])dnl
 

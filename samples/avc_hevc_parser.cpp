@@ -2,6 +2,49 @@
 #include "avc_hevc_parser.h"
 #include <string.h>
 
+// audio-aac
+uint32_t get_sampling_frequency_index(uint32_t sampling_frequency)
+{
+    switch (sampling_frequency) {
+        case 96000: return 0;
+        case 88200: return 1;
+        case 64000: return 2;
+        case 48000: return 3;
+        case 44100: return 4;
+        case 32000: return 5;
+        case 24000: return 6;
+        case 22050: return 7;
+        case 16000: return 8;
+        case 12000: return 9;
+        case 11025: return 10;
+        case 8000:  return 11;
+        case 7350:  return 12;
+        default:    return 0;
+    }
+}
+
+bool find_adts_head(uint8_t *data, uint32_t size, uint8_t *header)
+{
+    if (size < LC_MP4_ADTS_HEADER_SIZE)
+        return false;
+
+    if ((((data[0] << 8) | data[1]) & LC_MP4_ADTS_SYNC_MASK) == LC_MP4_ADTS_SYNC_PATTERN) {
+        if (header) {
+            memcpy(header, data, LC_MP4_ADTS_HEADER_SIZE);
+        }
+        return true;
+    }
+
+    return false;
+}
+
+void make_dsi(uint32_t sampling_frequency_index,uint32_t channel_configuration, uint8_t* dsi)
+{
+    uint32_t object_type = LC_MP4_AAC_LC; // AAC LC by default
+    dsi[0] = (object_type<<3) | (sampling_frequency_index>>1);
+    dsi[1] = ((sampling_frequency_index&1)<<7) | (channel_configuration<<3);
+}
+
 // Reference to Bento4 Ap4AvcParser.cpp/Ap4HevcParser.cpp
 
 /*----------------------------------------------------------------------

@@ -264,16 +264,32 @@ int read_file_audio_aac()
 }
 
 
+void parse_file_name()
+{
+    char path_file[] = "raw_1614301_1640243008092_64000.mp4";
+
+    char path[128];
+    char prefix[128];
+    uint64_t size = 0;
+    uint64_t stamp_ms = 0;
+    uint32_t du = 0;
+    int n = 0;
+    n = sscanf(path_file,"%*[^_]_%lu_%lu_%u.mp4", &size, &stamp_ms, &du);
+    printf("%d n = %d\n", __LINE__, n);
+    printf("%d size = %lu, stamp_ms = %lu, du = %u\n", __LINE__, size, stamp_ms, du);
+}
+
 int main(int argc, char* argv[])
 {
     // first read form mp4 files, and create files of aac/g711a/264/265
     //record_h264();
     //record_h265();
     //record_g711a();
-    read_file_264();
+    //read_file_264();
     //read_file_265();
     //read_file_audio();
     //read_file_audio_aac();
     //record_aac();
+    parse_file_name();
     return 0;
 }

@@ -58,9 +58,7 @@ void lc_mp4_muxer_close(void* muxer)
 
     LC_MP4_MUXER_INFO_t* mux = (LC_MP4_MUXER_INFO_t*)muxer;
     MP4Close(mux->hFile);
-    if (mux->buf) {
-        free(mux->buf);
-    }
+    LC_MP4_FREE(mux->buf);
     printf("%s[%d]\n", __FUNCTION__, __LINE__);
     free(mux);
     printf("close mux ok");
@@ -77,48 +75,6 @@ int lc_mp4_muxer_write_frame(void *muxer, int is_video, uint8_t *frame, int size
     } else {
         on_data_audio(mux, frame, size, pts);
     }
-}
-
-static uint32_t get_sampling_frequency_index(uint32_t sampling_frequency)
-{
-    switch (sampling_frequency) {
-        case 96000: return 0;
-        case 88200: return 1;
-        case 64000: return 2;
-        case 48000: return 3;
-        case 44100: return 4;
-        case 32000: return 5;
-        case 24000: return 6;
-        case 22050: return 7;
-        case 16000: return 8;
-        case 12000: return 9;
-        case 11025: return 10;
-        case 8000:  return 11;
-        case 7350:  return 12;
-        default:    return 0;
-    }
-}
-
-bool find_adts_head(uint8_t *data, uint32_t size, uint8_t *header)
-{
-    if (size < LC_MP4_ADTS_HEADER_SIZE)
-        return false;
-
-    if ((((data[0] << 8) | data[1]) & LC_MP4_ADTS_SYNC_MASK) == LC_MP4_ADTS_SYNC_PATTERN) {
-        if (header) {
-            memcpy(header, data, LC_MP4_ADTS_HEADER_SIZE);
-        }
-        return true;
-    }
-
-    return false;
-}
-
-void make_dsi(uint32_t sampling_frequency_index,uint32_t channel_configuration, uint8_t* dsi)
-{
-    uint32_t object_type = LC_MP4_AAC_LC; // AAC LC by default
-    dsi[0] = (object_type<<3) | (sampling_frequency_index>>1);
-    dsi[1] = ((sampling_frequency_index&1)<<7) | (channel_configuration<<3);
 }
 
 void on_data_audio(LC_MP4_MUXER_INFO_t *mux, uint8_t *frame, int size, int64_t pts)
@@ -830,6 +786,7 @@ int lc_mp4_demux_seek(void* demux, int64_t start_pts)
     LC_MP4_DEMUXER_INFO_t* dmx = (LC_MP4_DEMUXER_INFO_t*)demux;
     if (start_pts < 0 || start_pts >= dmx->moov.duration_ms) {
         printf("invalid position: %ld, duration = %lu\n", start_pts, dmx->moov.duration_ms);
+        return -1;
     }
 
     if (dmx->moov.video_track_id == MP4_INVALID_TRACK_ID && dmx->moov.audio_track_id == MP4_INVALID_TRACK_ID) {

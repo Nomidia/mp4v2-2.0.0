@@ -26,8 +26,8 @@ namespace impl {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-MP4Avc1Atom::MP4Avc1Atom(MP4File &file)
-        : MP4Atom(file, "avc1")
+MP4Hev1Atom::MP4Hev1Atom(MP4File &file)
+        : MP4Atom(file, "hev1")
 {
     AddReserved(*this, "reserved1", 6); /* 0 */
 
@@ -47,19 +47,19 @@ MP4Avc1Atom::MP4Avc1Atom(MP4File &file)
         new MP4StringProperty(*this, "compressorName");
     pProp->SetFixedLength(32);
     pProp->SetCountedFormat(true);
-    pProp->SetValue("JVT/AVC Coding");
+    pProp->SetValue("HEVC Coding");
     AddProperty(pProp); /* 6 */
 
     AddReserved(*this, "reserved4", 4); /* 7 */
 
-    ExpectChildAtom("avcC", Required, OnlyOne);
+    ExpectChildAtom("hvcC", Required, OnlyOne);
     ExpectChildAtom("btrt", Optional, OnlyOne);
     ExpectChildAtom("colr", Optional, OnlyOne);
     ExpectChildAtom("pasp", Optional, OnlyOne);
     // for now ExpectChildAtom("m4ds", Optional, OnlyOne);
 }
 
-void MP4Avc1Atom::Generate()
+void MP4Hev1Atom::Generate()
 {
     MP4Atom::Generate();
 
@@ -86,7 +86,6 @@ void MP4Avc1Atom::Generate()
     SetValue(reserved4, sizeof(reserved4));
     m_pProperties[7]->SetReadOnly(true);
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -14,17 +14,6 @@ extern "C" {
 #define LC_MP4_CODEC_PCMA 1
 #define LC_MP4_CODEC_PCMU 2
 
-typedef enum {
-    LC_MP4_AAC_MAIN = 1,
-    LC_MP4_AAC_LC = 2,
-    LC_MP4_AAC_SSR = 3,
-    LC_MP4_AAC_LTP = 4,
-    LC_MP4_SBR = 5,
-    LC_MP4_AAC_SCALABLE = 6,
-} LC_MP4_MPEG4_AUDIO_OBJECT_TYPES;
-
-
-
 typedef struct{
     int channels;
     int bits;
