@@ -8,7 +8,7 @@ extern "C" {
 
 #define LC_MP4_TIMESCALE 44100
 
-#define LC_MP4_FREE(p) do { if (p) {free(p); p = NULL;}} while(0)
+// #define LC_MP4_FREE(p) do { if (p) {free(p); p = NULL;}} while(0)
 
 inline void LC_MP4_BytesFromUInt32BE(uint8_t* bytes, uint32_t value)
 {
@@ -22,9 +22,9 @@ void on_data_audio(LC_MP4_MUXER_INFO_t *mux, uint8_t *frame, int size, int64_t p
 
 void on_data_video(LC_MP4_MUXER_INFO_t *mux, uint8_t *frame, int size, int64_t pts);
 
-int handle_video_h264(LC_MP4_MUXER_INFO_t *mux, uint8_t *nal_unit, int nal_unit_size, int64_t pts);
+int handle_video_h264(LC_MP4_MUXER_INFO_t *mux, uint8_t *nal_unit, int nal_unit_size, uint64_t duration);
 
-int handle_video_h265(LC_MP4_MUXER_INFO_t *mux, uint8_t *nal_unit, int nal_unit_size, int64_t pts);
+int handle_video_h265(LC_MP4_MUXER_INFO_t *mux, uint8_t *nal_unit, int nal_unit_size, uint64_t duration);
 
 int parse_mp4info(LC_MP4_DEMUXER_INFO_t *dmux);
 

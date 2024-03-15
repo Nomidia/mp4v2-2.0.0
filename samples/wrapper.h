@@ -56,6 +56,8 @@ typedef struct{
     MP4FileHandle hFile;
     uint8_t *buf;
     uint32_t buf_size;
+    int64_t last_video_ts;
+    uint64_t last_duration;
     LC_MP4_MUX_CODEC_INFO_t info;
 }LC_MP4_MUXER_INFO_t;
 
@@ -64,6 +66,8 @@ typedef struct{
     int bits;
     uint32_t sample_rate;
     uint32_t sample_rate_index;
+
+    uint32_t max_sample_size;
 
     int8_t video_codec;
     int8_t audio_codec;
@@ -86,6 +90,8 @@ typedef struct{
     MP4FileHandle hFile;
     LC_MP4_DEMUXER_MOOV_t moov;
     LC_MP4_MUXER_FRAME_t frame;
+
+    uint8_t *sample;
 
     uint8_t *buf;
     uint32_t buf_size;
