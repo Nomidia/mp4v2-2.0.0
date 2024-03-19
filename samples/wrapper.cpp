@@ -715,7 +715,7 @@ bool read_one_frame(LC_MP4_DEMUXER_INFO_t *dmx, bool is_video)
     }
 
     uint32_t num_bytes = dmx->moov.max_sample_size;
-    if (dmx->sample) {
+    if (!dmx->sample) {
         dmx->sample = (uint8_t*)malloc(dmx->moov.max_sample_size);
     }
 
