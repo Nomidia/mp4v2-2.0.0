@@ -68,6 +68,7 @@ typedef struct{
     uint32_t sample_rate_index;
 
     uint32_t max_sample_size;
+    uint32_t nalu_length_size;
 
     int8_t video_codec;
     int8_t audio_codec;

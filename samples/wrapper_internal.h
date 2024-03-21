@@ -18,6 +18,15 @@ inline void LC_MP4_BytesFromUInt32BE(uint8_t* bytes, uint32_t value)
     bytes[3] = (uint8_t)((value      )&0xFF);
 }
 
+inline uint32_t LC_MP4_BytesToUInt32BE(const unsigned char* bytes)
+{
+    return
+        ( ((uint32_t)bytes[0])<<24 ) |
+        ( ((uint32_t)bytes[1])<<16 ) |
+        ( ((uint32_t)bytes[2])<<8  ) |
+        ( ((uint32_t)bytes[3])     );
+}
+
 void on_data_audio(LC_MP4_MUXER_INFO_t *mux, uint8_t *frame, int size, int64_t pts);
 
 void on_data_video(LC_MP4_MUXER_INFO_t *mux, uint8_t *frame, int size, int64_t pts);

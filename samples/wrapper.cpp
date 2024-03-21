@@ -406,6 +406,7 @@ int parse_mp4info(LC_MP4_DEMUXER_INFO_t *dmux)
 
             if (strcasecmp(video_name, "avc1") == 0) {
                 moov.video_codec = LC_MP4_CODEC_H264;
+                MP4GetTrackH264LengthSize(hFile, track_id, &moov.nalu_length_size);
                 // get sps/pps/vps
                 if (!MP4GetTrackH264SeqPictHeaders(hFile, track_id, &sps_header, &sps_size, &pps_header, &pps_size)) {
                     continue;
@@ -435,6 +436,7 @@ int parse_mp4info(LC_MP4_DEMUXER_INFO_t *dmux)
                 free(pps_size);
             } else if (strcasecmp(video_name, "hev1") == 0) {
                 moov.video_codec = LC_MP4_CODEC_H265;
+                MP4GetTrackH265LengthSize(hFile, track_id, &moov.nalu_length_size);
                 // get sps/pps/vps
                 if (!MP4GetTrackH265SeqPictHeaders(hFile, track_id, &vps_header, &vps_size, &sps_header, &sps_size, &pps_header, &pps_size))
                     continue;
@@ -749,12 +751,30 @@ bool read_one_frame(LC_MP4_DEMUXER_INFO_t *dmx, bool is_video)
         if (is_sync && dmx->moov.video_prefix_size > 0) {
             memcpy(dmx->buf, dmx->moov.video_prefix, dmx->moov.video_prefix_size);
         }
-        uint8_t *p = dmx->buf + offset;
-        memcpy(p, dmx->sample, num_bytes);
-        p[0] = 0;
-        p[1] = 0;
-        p[2] = 0;
-        p[3] = 1;
+
+        uint8_t* data = dmx->sample;
+        uint32_t data_size = num_bytes;
+        while (data_size > 0) {
+            // TODO: using moov.nalu_length_size
+            uint32_t nalu_size;
+            nalu_size = LC_MP4_BytesToUInt32BE(data);
+            data += 4;
+            data_size -= 4;
+
+            if (nalu_size > data_size) break;
+
+            uint8_t *p = dmx->buf + offset;
+            p[0] = 0;
+            p[1] = 0;
+            p[2] = 0;
+            p[3] = 1;
+            memcpy(p + 4, data, nalu_size);
+            offset += (4 + nalu_size);
+
+            data += nalu_size;
+            data_size -= nalu_size;
+        }
+
     } else {
         bool add_adts_head = false;
         // check if it is needed to add adts for every aac frame
