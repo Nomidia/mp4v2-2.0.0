@@ -4621,6 +4621,16 @@ void MP4File::SetTrackDurationPerChunk( MP4TrackId trackId, MP4Duration duration
     m_pTracks[FindTrackIndex(trackId)]->SetDurationPerChunk( duration );
 }
 
+uint32_t MP4File::GetTrackSamplesPerChunk( MP4TrackId trackId)
+{
+    return m_pTracks[FindTrackIndex(trackId)]->GetSamplesPerChunk();
+}
+
+void MP4File::SetTrackSamplesPerChunk( MP4TrackId trackId, uint32_t samples )
+{
+    m_pTracks[FindTrackIndex(trackId)]->SetSamplesPerChunk( samples );
+}
+
 void MP4File::CopySample(
     MP4File*    srcFile,
     MP4TrackId  srcTrackId,

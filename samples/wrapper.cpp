@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <inttypes.h>
 
 #include "wrapper.h"
 #include "wrapper_internal.h"
@@ -46,6 +47,7 @@ void* lc_mp4_muxer_open(const char *file, int vtype, int width, int height,
 
     mux->last_duration = LC_MP4_TIMESCALE / mux->info.fps;
     printf("open succeeded\n");
+    //MP4LogSetLevel(MP4_LOG_VERBOSE3);
 
     return mux;
 }
@@ -113,7 +115,7 @@ void on_data_audio(LC_MP4_MUXER_INFO_t *mux, uint8_t *frame, int size, int64_t p
             mux->info.audio_duration = duration;
 
             // printf("audio timescale = %u\n", mux->info.sample_rate);
-            // printf("audio duration = %llu\n", duration);
+            // printf("audio duration = %" PRIu64 "\n", duration);
 
             if (mux->info.audio_codec == LC_MP4_CODEC_PCMA ) {
                 mux->info.audio_track_id = MP4AddALawAudioTrack(mux->hFile, mux->info.sample_rate, duration);
@@ -197,6 +199,7 @@ int handle_video_h264(LC_MP4_MUXER_INFO_t *mux, uint8_t *nal_unit, int nal_unit_
                     mux->info.w, mux->info.h, sps.profile_idc, profile_compat, sps.level_idc, nalue_size_minus_one);
 
                 MP4AddH264SequenceParameterSet(mux->hFile, mux->info.video_track_id, nal_unit, nal_unit_size);
+                //MP4SetTrackSamplesPerChunk(mux->hFile, mux->info.video_track_id, 1);
             }
             break;
         case LC_MP4_AVC_NAL_UNIT_TYPE_PPS:
@@ -351,9 +354,9 @@ int parse_mp4info(LC_MP4_DEMUXER_INFO_t *dmux)
     MP4Duration duration = MP4GetDuration(hFile);
     moov.duration_ms = MP4ConvertFromMovieDuration(hFile, duration, MP4_MSECS_TIME_SCALE);
     printf("mp4 file timescale = %u\n", timescale);
-    printf("total duration = %llu\n", duration);
-    printf("total duration time = %llu ms\n", duration * 1000 / timescale);
-    printf("moov.duration_ms time = %llu ms\n", moov.duration_ms);
+    printf("total duration = %" PRIu64 "\n", duration);
+    printf("total duration time = %" PRIu64 " ms\n", duration * 1000 / timescale);
+    printf("moov.duration_ms time = %" PRIu64 " ms\n", moov.duration_ms);
 
     moov.video_track_id = MP4_INVALID_TRACK_ID;
     moov.audio_track_id = MP4_INVALID_TRACK_ID;
@@ -575,15 +578,17 @@ void* lc_mp4_demux_open(const char *file, uint64_t start_pts)
     demux->cur_pts = start_pts;
     demux->moov.start_pts = start_pts;
     demux->moov.end_pts = start_pts + demux->moov.duration_ms;
-    // printf("<jiang> start_pts = %llu, end_pts = %llu\n", demux->moov.start_pts, demux->moov.end_pts);
+    // printf("<jiang> start_pts = %" PRIu64 ", end_pts = %" PRIu64 "\n", demux->moov.start_pts, demux->moov.end_pts);
 
     demux->frame.bits = demux->moov.bits;
     demux->frame.channels = demux->moov.channels;
     demux->frame.sample_rate = demux->moov.sample_rate;
     demux->frame.pts_ms = demux->cur_pts;
-    printf("bits = %d, channels = %d, sample rate= %d, frame.pts_ms = %llu\n",
+    printf("bits = %d, channels = %d, sample rate= %d, frame.pts_ms = %" PRIu64 "\n",
         demux->frame.bits, demux->frame.channels, demux->frame.sample_rate, demux->frame.pts_ms);
 
+
+    //MP4LogSetLevel(MP4_LOG_VERBOSE4);
     return demux;
 }
 
@@ -669,12 +674,12 @@ LC_MP4_MUXER_FRAME_t* lc_mp4_demux_read_frame(void* demux)
 
         // sync time after seek, when abs(video_abs_ts - audio_abs_ts) >= 500
         if (!is_video && !dmx->video_finished && (dmx->audio_abs_ts + 500 < dmx->video_abs_ts)) {
-            printf("sync video_abs_ts = %llu, audio_abs_ts = %llu\n", dmx->video_abs_ts, dmx->audio_abs_ts);
-            printf("sync video and audio, span = %llu\n", dmx->video_abs_ts - dmx->audio_abs_ts);
+            printf("sync video_abs_ts = %" PRIu64 ", audio_abs_ts = %" PRIu64 "\n", dmx->video_abs_ts, dmx->audio_abs_ts);
+            printf("sync video and audio, span = %" PRIu64 "\n", dmx->video_abs_ts - dmx->audio_abs_ts);
             continue;
         }
 
-        //printf("video ts = %llu, audio ts = %llu, cur ts = %llu\n", dmx->video_abs_ts, dmx->audio_abs_ts, dmx->cur_pts);
+        //printf("video ts = %" PRIu64 ", audio ts = %" PRIu64 ", cur ts = %" PRIu64 "\n", dmx->video_abs_ts, dmx->audio_abs_ts, dmx->cur_pts);
         break;
     }
 
@@ -724,11 +729,11 @@ bool read_one_frame(LC_MP4_DEMUXER_INFO_t *dmx, bool is_video)
     if (!MP4ReadSample(dmx->hFile, tid, sid, &dmx->sample, &num_bytes, &starttime, &duration, NULL, &is_sync))
         return false;
 
-    //printf("%s num_bytes = %u, starttime = %llu, duration = %llu, is_sync = %d\n", __FUNCTION__, num_bytes, starttime, duration, is_sync);
+    //printf("%s num_bytes = %u, starttime = %" PRIu64 ", duration = %" PRIu64 ", is_sync = %d\n", __FUNCTION__, num_bytes, starttime, duration, is_sync);
 
     // sample start time in ms
     starttime = MP4ConvertFromTrackTimestamp(dmx->hFile, tid, starttime, MP4_MSECS_TIME_SCALE);
-    //printf("starttime = %llu\n", starttime);
+    //printf("starttime = %" PRIu64 "\n", starttime);
 
     dmx->frame.pts_ms = dmx->moov.start_pts + starttime;
     dmx->frame.is_key_frame = is_sync;
@@ -798,7 +803,7 @@ bool read_one_frame(LC_MP4_DEMUXER_INFO_t *dmx, bool is_video)
 
     dmx->frame.buf = dmx->buf;
     dmx->frame.size = expect_size;
-    //printf("dmx->frame.pts_ms = %llu\n", dmx->frame.pts_ms);
+    //printf("dmx->frame.pts_ms = %" PRIu64 "\n", dmx->frame.pts_ms);
     if (is_video) {
         //dmx->video_abs_ts = starttime + MP4ConvertFromTrackDuration(dmx->hFile, tid, duration, MP4_MSECS_TIME_SCALE);
         dmx->video_abs_ts = starttime;
@@ -838,7 +843,7 @@ int lc_mp4_demux_seek(void* demux, int64_t position_ms)
 
     LC_MP4_DEMUXER_INFO_t* dmx = (LC_MP4_DEMUXER_INFO_t*)demux;
     if (position_ms < 0 || (int64_t)position_ms >= dmx->moov.duration_ms) {
-        printf("invalid position: %lld, duration = %llu\n", position_ms, dmx->moov.duration_ms);
+        printf("invalid position: %" PRId64 ", duration = %" PRIu64 "\n", position_ms, dmx->moov.duration_ms);
         return -1;
     }
 
@@ -865,7 +870,7 @@ int lc_mp4_demux_seek(void* demux, int64_t position_ms)
             video_start_ms = MP4ConvertFromTrackTimestamp(dmx->hFile, tid, video_start_ms, MP4_MSECS_TIME_SCALE);
             // reset video_start_ms according to video start time
             position_ms = video_start_ms;
-            printf("seek video_sample_id = %u, video_start_ms = %llu\n", video_sample_id, video_start_ms);
+            printf("seek video_sample_id = %u, video_start_ms = %" PRIu64 "\n", video_sample_id, video_start_ms);
         }
     }
 
@@ -878,7 +883,7 @@ int lc_mp4_demux_seek(void* demux, int64_t position_ms)
         } else {
             audio_start_ms = MP4GetSampleTime(dmx->hFile, tid, audio_sample_id);
             audio_start_ms = MP4ConvertFromTrackTimestamp(dmx->hFile, tid, audio_start_ms, MP4_MSECS_TIME_SCALE);
-            printf("seek audio_sample_id = %u, audio_start_ms = %llu\n", audio_sample_id, audio_start_ms);
+            printf("seek audio_sample_id = %u, audio_start_ms = %" PRIu64 "\n", audio_sample_id, audio_start_ms);
         }
     }
 

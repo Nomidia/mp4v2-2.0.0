@@ -163,6 +163,9 @@ public:
     MP4Duration GetDurationPerChunk();
     void        SetDurationPerChunk( MP4Duration );
 
+    uint32_t GetSamplesPerChunk();
+    void     SetSamplesPerChunk( uint32_t );
+
 protected:
     bool        InitEditListProperties();
 

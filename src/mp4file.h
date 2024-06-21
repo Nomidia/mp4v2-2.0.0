@@ -233,6 +233,8 @@ public:
 
     MP4Duration GetTrackDurationPerChunk( MP4TrackId );
     void        SetTrackDurationPerChunk( MP4TrackId, MP4Duration );
+    uint32_t    GetTrackSamplesPerChunk( MP4TrackId );
+    void        SetTrackSamplesPerChunk( MP4TrackId, uint32_t );
 
     /* track level convenience functions */
 

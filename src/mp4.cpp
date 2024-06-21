@@ -4766,4 +4766,57 @@ bool MP4SetTrackDurationPerChunk(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+bool MP4GetTrackSamplesPerChunk(
+    MP4FileHandle hFile,
+    MP4TrackId    trackId,
+    uint32_t*     samples )
+{
+    if( !MP4_IS_VALID_FILE_HANDLE( hFile ))
+        return false;
+
+    if (!samples)
+        return false;
+
+    try {
+        *samples = ((MP4File*)hFile)->GetTrackSamplesPerChunk( trackId );
+        return true;
+    }
+    catch( Exception* x ) {
+        mp4v2::impl::log.errorf(*x);
+        delete x;
+    }
+    catch( ... ) {
+        mp4v2::impl::log.errorf("%s: failed", __FUNCTION__ );
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool MP4SetTrackSamplesPerChunk(
+    MP4FileHandle hFile,
+    MP4TrackId    trackId,
+    uint32_t      samples )
+{
+    if( !MP4_IS_VALID_FILE_HANDLE( hFile ))
+        return false;
+
+    try {
+        ((MP4File*)hFile)->SetTrackSamplesPerChunk( trackId, samples );
+        return true;
+    }
+    catch( Exception* x ) {
+        mp4v2::impl::log.errorf(*x);
+        delete x;
+    }
+    catch( ... ) {
+        mp4v2::impl::log.errorf("%s: failed", __FUNCTION__ );
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 } // extern "C"

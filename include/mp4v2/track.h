@@ -488,6 +488,18 @@ bool MP4SetTrackDurationPerChunk(
     MP4TrackId    trackId,
     MP4Duration   duration );
 
+MP4V2_EXPORT
+bool MP4GetTrackSamplesPerChunk(
+    MP4FileHandle hFile,
+    MP4TrackId    trackId,
+    uint32_t*     samples );
+
+MP4V2_EXPORT
+bool MP4SetTrackSamplesPerChunk(
+    MP4FileHandle hFile,
+    MP4TrackId    trackId,
+    uint32_t      samples );
+
 /**
  *  @param hFile handle of file for operation.
  *  @param trackId id of track for operation.

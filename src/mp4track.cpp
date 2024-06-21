@@ -443,11 +443,11 @@ void MP4Track::WriteSample(
 
     // append sample bytes to chunk buffer
     if( m_sizeOfDataInChunkBuffer + numBytes > m_chunkBufferSize ) {
-        m_pChunkBuffer = (uint8_t*)MP4Realloc(m_pChunkBuffer, m_chunkBufferSize + numBytes);
+        m_pChunkBuffer = (uint8_t*)MP4Realloc(m_pChunkBuffer, m_sizeOfDataInChunkBuffer + numBytes);
         if (m_pChunkBuffer == NULL) 
             return;	
         
-        m_chunkBufferSize += numBytes;
+        m_chunkBufferSize = m_sizeOfDataInChunkBuffer + numBytes;
     }
 
     memcpy(&m_pChunkBuffer[m_sizeOfDataInChunkBuffer], pBytes, numBytes);
@@ -1904,6 +1904,17 @@ void MP4Track::SetDurationPerChunk( MP4Duration duration )
 {
     m_durationPerChunk = duration;
 }
+
+uint32_t MP4Track::GetSamplesPerChunk()
+{
+    return m_samplesPerChunk;
+}
+
+void MP4Track::SetSamplesPerChunk( uint32_t samples )
+{
+    m_samplesPerChunk = samples;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 
